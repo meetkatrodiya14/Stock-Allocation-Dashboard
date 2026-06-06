@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Stock Allocation Dashboard</title>
+<style>
+  :root{
+    --bg:#0f1419; --panel:#1a2027; --panel2:#222a33; --border:#2d3640;
+    --text:#e8eef5; --muted:#8a96a3; --accent:#4ade80; --accent2:#3b82f6;
+    --yes:#22c55e; --no:#ef4444; --half:#eab308; --danger:#dc2626;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+  .container{max-width:1400px;margin:0 auto;padding:20px}
+  header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+  h1{font-size:22px;color:var(--accent)}
+  .user-bar{display:flex;align-items:center;gap:10px;background:var(--panel);padding:8px 14px;border-radius:8px;border:1px solid var(--border)}
+  .user-bar select,.user-bar input{background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:6px 10px;border-radius:6px;font-size:13px}
+  button{background:var(--accent2);color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;transition:opacity .2s}
+  button:hover{opacity:.85}
+  button.danger{background:var(--danger)}
+  button.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  button.small{padding:4px 10px;font-size:12px}
+  .tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+  .tab{padding:10px 18px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;font-weight:500}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px}
+  .stock-info{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-bottom:16px}
+  .stock-info input{background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:10px;border-radius:6px;font-size:14px;width:100%}
+  .criteria-row{display:grid;grid-template-columns:1fr 80px 280px 1fr;gap:12px;padding:12px;border-bottom:1px solid var(--border);align-items:center}
+  .criteria-row:last-child{border-bottom:none}
+  .criteria-name{font-weight:500}
+  .criteria-weight{color:var(--muted);font-size:13px;text-align:center}
+  .options{display:flex;gap:6px}
+  .opt-btn{flex:1;padding:8px;background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:6px;cursor:pointer;font-size:12px;font-weight:500}
+  .opt-btn.yes.active{background:var(--yes);border-color:var(--yes);color:#fff}
+  .opt-btn.half.active{background:var(--half);border-color:var(--half);color:#000}
+  .opt-btn.no.active{background:var(--no);border-color:var(--no);color:#fff}
+  .note-input{background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:6px 10px;border-radius:6px;font-size:12px;width:100%}
+  .score-display{background:linear-gradient(135deg,var(--panel),var(--panel2));border:2px solid var(--accent);border-radius:12px;padding:24px;text-align:center;margin-top:16px;margin-bottom:16px}
+  .score-number{font-size:48px;font-weight:700;color:var(--accent)}
+  .score-bucket{font-size:18px;color:var(--text);margin-top:8px;font-weight:500}
+  .score-breakdown{color:var(--muted);font-size:12px;margin-top:6px}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:10px;text-align:left;border-bottom:1px solid var(--border);font-size:13px}
+  th{color:var(--muted);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+  .weight-input{background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:6px 10px;border-radius:6px;font-size:13px;width:80px}
+  .weight-edit{background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:6px 10px;border-radius:6px;font-size:13px;width:100%}
+  .total-weight{background:var(--panel2);padding:12px;border-radius:8px;margin-bottom:12px;font-weight:500;display:flex;justify-content:space-between}
+  .total-weight.over{color:var(--no)}
+  .add-criteria-form{display:grid;grid-template-columns:2fr 100px 100px;gap:10px;margin-top:16px;padding:16px;background:var(--panel2);border-radius:8px}
+  .add-criteria-form input{background:var(--panel);color:var(--text);border:1px solid var(--border);padding:10px;border-radius:6px}
+  .history-row{cursor:pointer;transition:background .2s}
+  .history-row:hover{background:var(--panel2)}
+  .bucket-pill{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600}
+  .bucket-strong{background:#22c55e;color:#fff}
+  .bucket-buy{background:#3b82f6;color:#fff}
+  .bucket-watch{background:#eab308;color:#000}
+  .bucket-skip{background:#6b7280;color:#fff}
+  .bucket-row{display:grid;grid-template-columns:1fr 100px 100px 50px;gap:10px;align-items:center;padding:8px;background:var(--panel2);border-radius:6px;margin-bottom:6px}
+  .bucket-row input{background:var(--panel);color:var(--text);border:1px solid var(--border);padding:6px 8px;border-radius:4px;font-size:12px}
+  .help-text{color:var(--muted);font-size:12px;margin-top:8px;line-height:1.5}
+  .modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center}
+  .modal.show{display:flex}
+  .modal-content{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:800px;max-height:85vh;overflow-y:auto;width:90%}
+  .empty{text-align:center;color:var(--muted);padding:40px}
+  @media (max-width:768px){
+    .criteria-row{grid-template-columns:1fr;gap:6px}
+    .stock-info{grid-template-columns:1fr}
+    .add-criteria-form{grid-template-columns:1fr}
+  }
+  .actions-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .filter-bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+  .filter-bar input,.filter-bar select{background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:8px 12px;border-radius:6px;font-size:13px}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Stock Allocation Dashboard</h1>
+    <div class="user-bar">
+      <span style="color:var(--muted)">User:</span>
+      <select id="userSelect" onchange="switchUser()"></select>
+      <button class="small ghost" onclick="showAddUser()">+ Add User</button>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('dashboard',event)">Dashboard</div>
+    <div class="tab" onclick="showTab('weightage',event)">Weightage Menu</div>
+    <div class="tab" onclick="showTab('buckets',event)">Bucket Settings</div>
+    <div class="tab" onclick="showTab('history',event)">History</div>
+    <div class="tab" onclick="showTab('compare',event)">Compare</div>
+    <div class="tab" onclick="showTab('data',event)">Data / Backup</div>
+  </div>
+
+  <!-- DASHBOARD TAB -->
+  <div id="tab-dashboard">
+    <div class="panel">
+      <div class="stock-info">
+        <input type="text" id="stockName" placeholder="Stock Name (e.g. Laurus Labs)" />
+        <input type="text" id="stockSector" placeholder="Sector (e.g. Pharma)" />
+        <input type="date" id="stockDate" />
+      </div>
+      <input type="text" id="stockNotes" class="note-input" placeholder="Overall notes / thesis for this stock..." style="margin-bottom:8px;padding:10px;font-size:13px" />
+    </div>
+
+    <div class="panel">
+      <div id="criteriaList"></div>
+    </div>
+
+    <div class="score-display">
+      <div class="score-number" id="scoreNumber">0%</div>
+      <div class="score-bucket" id="scoreBucket">No allocation</div>
+      <div class="score-breakdown" id="scoreBreakdown">Maximum possible: 0% | Earned: 0%</div>
+      <div style="margin-top:14px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button onclick="saveDecision()">Save Decision</button>
+        <button class="ghost" onclick="resetForm()">Reset Form</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- WEIGHTAGE TAB -->
+  <div id="tab-weightage" style="display:none">
+    <div class="panel">
+      <h2 style="margin-bottom:12px">Criteria Weightage</h2>
+      <p class="help-text">Set weightage % for each criterion. Yes = full weight, 50% = half weight, No = 0. Total of all weights = your maximum possible allocation (typically 100%). Click <b>OK / Save Changes</b> at the bottom to apply your edits.</p>
+      <div class="total-weight" id="totalWeightDisplay"></div>
+      <div class="filter-bar" style="margin-bottom:12px">
+        <label style="color:var(--muted);align-self:center">Sort:</label>
+        <select id="weightSort" onchange="renderWeightage()">
+          <option value="default">Default Order</option>
+          <option value="weight_desc">Weight % (High to Low)</option>
+          <option value="weight_asc">Weight % (Low to High)</option>
+          <option value="name_asc">Name (A to Z)</option>
+          <option value="name_desc">Name (Z to A)</option>
+        </select>
+        <span id="pendingIndicator" style="color:var(--half);align-self:center;display:none">● Unsaved changes</span>
+      </div>
+      <table>
+        <thead><tr><th>Criteria</th><th style="width:120px">Weight %</th><th style="width:100px">Actions</th></tr></thead>
+        <tbody id="weightageTable"></tbody>
+      </table>
+      <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="commitWeightage()" id="commitBtn" style="background:var(--accent);color:#000;font-weight:600;padding:10px 22px">OK / Save Changes</button>
+        <button class="ghost" onclick="discardWeightage()">Discard Changes</button>
+      </div>
+      <div class="add-criteria-form">
+        <input type="text" id="newCriteriaName" placeholder="New criteria name" />
+        <input type="number" id="newCriteriaWeight" placeholder="Weight %" step="0.5" />
+        <button onclick="addCriteria()">+ Add Criteria</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BUCKETS TAB -->
+  <div id="tab-buckets" style="display:none">
+    <div class="panel">
+      <h2 style="margin-bottom:12px">Bucket / Label Settings</h2>
+      <p class="help-text">Set the score ranges that determine the label (Strong Buy, Buy, Watch, Skip etc.). Use this to quickly decide based on the final allocation %.</p>
+      <div id="bucketList" style="margin-top:16px"></div>
+      <div style="margin-top:12px">
+        <button onclick="addBucket()">+ Add Bucket</button>
+        <button class="ghost" onclick="resetBuckets()">Reset to Default</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY TAB -->
+  <div id="tab-history" style="display:none">
+    <div class="panel">
+      <h2 style="margin-bottom:12px">Decision History</h2>
+      <div class="filter-bar">
+        <input type="text" id="histSearch" placeholder="Search stock name..." oninput="renderHistory()" />
+        <select id="histUserFilter" onchange="renderHistory()">
+          <option value="all">All Users</option>
+        </select>
+        <select id="histBucketFilter" onchange="renderHistory()">
+          <option value="all">All Buckets</option>
+        </select>
+      </div>
+      <table>
+        <thead><tr><th>Date</th><th>Stock</th><th>Sector</th><th>User</th><th>Allocation</th><th>Bucket</th><th></th></tr></thead>
+        <tbody id="historyTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- COMPARE TAB -->
+  <div id="tab-compare" style="display:none">
+    <div class="panel">
+      <h2 style="margin-bottom:12px">Compare Decisions</h2>
+      <p class="help-text">Pick 2 or 3 past decisions to compare side by side.</p>
+      <div class="filter-bar">
+        <select id="cmpA"></select>
+        <select id="cmpB"></select>
+        <select id="cmpC"><option value="">(optional)</option></select>
+        <button onclick="renderCompare()">Compare</button>
+      </div>
+      <div id="compareResult"></div>
+    </div>
+  </div>
+
+  <!-- DATA TAB -->
+  <div id="tab-data" style="display:none">
+    <div class="panel">
+      <h2 style="margin-bottom:12px">Data Backup & Share</h2>
+      <p class="help-text">Export all your data as a file. You can share this file with your friend, or back it up. Importing replaces current data.</p>
+      <div class="actions-bar" style="margin-top:16px">
+        <button onclick="exportData()">Export All Data (JSON)</button>
+        <button onclick="exportCSV()">Export History as CSV</button>
+        <button class="ghost" onclick="document.getElementById('importFile').click()">Import Data</button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)" />
+        <button class="danger" onclick="clearAllData()">Clear All Data</button>
+      </div>
+      <p class="help-text" style="margin-top:16px"><b>To share with friend:</b> Export your data as JSON, send them this HTML file + the JSON. They open the HTML, then Import your JSON. They can also add themselves as a new user and keep their own data separately.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal" id="addUserModal">
+  <div class="modal-content" style="max-width:400px">
+    <h2>Add User</h2>
+    <input type="text" id="newUserName" placeholder="User name" style="width:100%;padding:10px;margin-top:14px;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:6px" />
+    <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">
+      <button class="ghost" onclick="closeModal('addUserModal')">Cancel</button>
+      <button onclick="addUser()">Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- View Decision Modal -->
+<div class="modal" id="viewModal">
+  <div class="modal-content">
+    <div id="viewModalContent"></div>
+    <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
+      <button class="ghost" onclick="closeModal('viewModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============ DEFAULTS ============
+const DEFAULT_CRITERIA = [
+  {name:"Supply Demand Mismatch", weight:5},
+  {name:"Gross Margin", weight:4},
+  {name:"Entry Barrier", weight:5},
+  {name:"Sectorial Tailwind", weight:6},
+  {name:"Export / Import Substitution", weight:4},
+  {name:"Few Listed Players", weight:3},
+  {name:"Operating Leverage / EBITDA Margin Improvement Chance", weight:5},
+  {name:"Product Mix Change", weight:3},
+  {name:"New Capex Live with Strong Current Demand in Product", weight:5},
+  {name:"Price Neglect", weight:3},
+  {name:"Preferential Allotment Majorly to Promoter (Growth + Visibility)", weight:4},
+  {name:"Promoter Open Market Purchase", weight:4},
+  {name:"New Sector / New Theme / New Invention / Market Fancy", weight:4},
+  {name:"Crossing the Chasm / Tornado Phase / Cost Curve", weight:4},
+  {name:"No one can Gauge TAM (Huge but undefined)", weight:3},
+  {name:"Chance of Euphoria / Bubble", weight:2},
+  {name:"Shareholding Pattern (FII/DII/Retail change + Low Float)", weight:4},
+  {name:"Chance of Re-Rating", weight:5},
+  {name:"Starting Valuation", weight:5},
+  {name:"Speed of New Capex (Brownfield, Machinery, Ramp-up time)", weight:4},
+  {name:"Order Backed Capacities / Technical Tie-up / Exclusive Agreement", weight:4},
+  {name:"Any Good Investor Buy / Holding", weight:3},
+  {name:"Solving any Bottleneck in Tailwind-led Sector", weight:4},
+  {name:"Leader in Sector", weight:4},
+  {name:"Promoter Quality / New CEO / New Generation Joining", weight:3}
+];
+
+const DEFAULT_BUCKETS = [
+  {label:"Strong Buy", min:60, max:100, color:"strong"},
+  {label:"Buy", min:40, max:59.99, color:"buy"},
+  {label:"Watch / Small Allocation", min:20, max:39.99, color:"watch"},
+  {label:"Skip / Avoid", min:0, max:19.99, color:"skip"}
+];
+
+// ============ STATE ============
+let state = loadState();
+
+function loadState(){
+  const raw = localStorage.getItem("stockDashV1");
+  if(raw){
+    try{ return JSON.parse(raw); }catch(e){}
+  }
+  return {
+    users:[{id:"u1",name:"Meet"}],
+    currentUser:"u1",
+    criteria: DEFAULT_CRITERIA.map((c,i)=>({id:"c"+i, ...c})),
+    buckets: DEFAULT_BUCKETS,
+    decisions:[],
+    currentForm:{}
+  };
+}
+
+function saveState(){
+  localStorage.setItem("stockDashV1", JSON.stringify(state));
+}
+
+// ============ TABS ============
+function showTab(name, ev){
+  document.querySelectorAll('[id^="tab-"]').forEach(el=>el.style.display='none');
+  document.getElementById("tab-"+name).style.display='block';
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  if(ev) ev.target.classList.add('active');
+  if(name==='weightage') renderWeightage();
+  if(name==='buckets') renderBuckets();
+  if(name==='history') renderHistory();
+  if(name==='compare') renderCompareSelectors();
+  if(name==='dashboard') renderCriteria();
+}
+
+// ============ USERS ============
+function renderUsers(){
+  const sel = document.getElementById("userSelect");
+  sel.innerHTML = state.users.map(u=>`<option value="${u.id}" ${u.id===state.currentUser?'selected':''}>${u.name}</option>`).join('');
+  const fsel = document.getElementById("histUserFilter");
+  if(fsel){
+    fsel.innerHTML = '<option value="all">All Users</option>' + state.users.map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
+  }
+}
+function switchUser(){
+  state.currentUser = document.getElementById("userSelect").value;
+  saveState();
+  resetForm();
+}
+function showAddUser(){ document.getElementById("addUserModal").classList.add("show"); }
+function closeModal(id){ document.getElementById(id).classList.remove("show"); }
+function addUser(){
+  const name = document.getElementById("newUserName").value.trim();
+  if(!name) return alert("Enter a name");
+  const id = "u" + Date.now();
+  state.users.push({id,name});
+  state.currentUser = id;
+  document.getElementById("newUserName").value="";
+  closeModal("addUserModal");
+  saveState();
+  renderUsers();
+  resetForm();
+}
+
+// ============ CRITERIA RENDERING (Dashboard) ============
+function renderCriteria(){
+  const list = document.getElementById("criteriaList");
+  list.innerHTML = state.criteria.map(c=>{
+    const v = (state.currentForm.scores||{})[c.id] || '';
+    const note = (state.currentForm.notes||{})[c.id] || '';
+    return `
+    <div class="criteria-row">
+      <div class="criteria-name">${c.name}</div>
+      <div class="criteria-weight">${c.weight}%</div>
+      <div class="options">
+        <button class="opt-btn yes ${v==='yes'?'active':''}" onclick="setScore('${c.id}','yes')">Yes</button>
+        <button class="opt-btn half ${v==='half'?'active':''}" onclick="setScore('${c.id}','half')">50%</button>
+        <button class="opt-btn no ${v==='no'?'active':''}" onclick="setScore('${c.id}','no')">No</button>
+      </div>
+      <input type="text" class="note-input" placeholder="Note (optional)" value="${note}" oninput="setNote('${c.id}',this.value)" />
+    </div>`;
+  }).join('');
+  updateScore();
+}
+
+function setScore(cid, val){
+  if(!state.currentForm.scores) state.currentForm.scores = {};
+  if(state.currentForm.scores[cid]===val){
+    delete state.currentForm.scores[cid];
+  } else {
+    state.currentForm.scores[cid] = val;
+  }
+  saveState();
+  renderCriteria();
+}
+function setNote(cid, val){
+  if(!state.currentForm.notes) state.currentForm.notes = {};
+  state.currentForm.notes[cid] = val;
+  saveState();
+}
+
+function calcScore(scores){
+  let earned = 0, max = 0;
+  state.criteria.forEach(c=>{
+    max += Number(c.weight)||0;
+    const v = scores[c.id];
+    if(v==='yes') earned += Number(c.weight)||0;
+    else if(v==='half') earned += (Number(c.weight)||0)/2;
+  });
+  return {earned, max};
+}
+
+function getBucket(score){
+  for(const b of state.buckets){
+    if(score >= b.min && score <= b.max) return b;
+  }
+  return {label:"-", color:"skip"};
+}
+
+function updateScore(){
+  const {earned, max} = calcScore(state.currentForm.scores||{});
+  document.getElementById("scoreNumber").textContent = earned.toFixed(1)+"%";
+  const b = getBucket(earned);
+  document.getElementById("scoreBucket").innerHTML = `<span class="bucket-pill bucket-${b.color}">${b.label}</span>`;
+  document.getElementById("scoreBreakdown").textContent = `Maximum possible: ${max}% | Earned: ${earned.toFixed(1)}%`;
+}
+
+// ============ SAVE DECISION ============
+function saveDecision(){
+  const name = document.getElementById("stockName").value.trim();
+  if(!name) return alert("Enter stock name");
+  const {earned,max} = calcScore(state.currentForm.scores||{});
+  const dec = {
+    id: "d"+Date.now(),
+    userId: state.currentUser,
+    stockName: name,
+    sector: document.getElementById("stockSector").value.trim(),
+    date: document.getElementById("stockDate").value || new Date().toISOString().slice(0,10),
+    overallNote: document.getElementById("stockNotes").value.trim(),
+    scores: {...(state.currentForm.scores||{})},
+    notes: {...(state.currentForm.notes||{})},
+    allocation: Number(earned.toFixed(2)),
+    maxPossible: max,
+    bucket: getBucket(earned).label,
+    bucketColor: getBucket(earned).color,
+    criteriaSnapshot: state.criteria.map(c=>({id:c.id,name:c.name,weight:c.weight}))
+  };
+  state.decisions.unshift(dec);
+  saveState();
+  alert(`Saved: ${name} → ${earned.toFixed(1)}% allocation (${dec.bucket})`);
+  resetForm();
+}
+
+function resetForm(){
+  state.currentForm = {};
+  document.getElementById("stockName").value="";
+  document.getElementById("stockSector").value="";
+  document.getElementById("stockNotes").value="";
+  document.getElementById("stockDate").value = new Date().toISOString().slice(0,10);
+  saveState();
+  renderCriteria();
+}
+
+// ============ WEIGHTAGE (pending draft system) ============
+let pendingCriteria = null;
+let hasPending = false;
+
+function getPending(){
+  if(!pendingCriteria) pendingCriteria = JSON.parse(JSON.stringify(state.criteria));
+  return pendingCriteria;
+}
+function markPending(){
+  hasPending = true;
+  const ind = document.getElementById("pendingIndicator");
+  if(ind) ind.style.display = "inline";
+}
+function clearPending(){
+  pendingCriteria = null;
+  hasPending = false;
+  const ind = document.getElementById("pendingIndicator");
+  if(ind) ind.style.display = "none";
+}
+
+function renderWeightage(){
+  const list = getPending();
+  const sortMode = (document.getElementById("weightSort")||{}).value || "default";
+  let sorted = [...list];
+  if(sortMode==="weight_desc") sorted.sort((a,b)=>(Number(b.weight)||0)-(Number(a.weight)||0));
+  else if(sortMode==="weight_asc") sorted.sort((a,b)=>(Number(a.weight)||0)-(Number(b.weight)||0));
+  else if(sortMode==="name_asc") sorted.sort((a,b)=>a.name.localeCompare(b.name));
+  else if(sortMode==="name_desc") sorted.sort((a,b)=>b.name.localeCompare(a.name));
+
+  const tot = list.reduce((s,c)=>s+(Number(c.weight)||0),0);
+  const totEl = document.getElementById("totalWeightDisplay");
+  totEl.innerHTML = `<span>Total Weight (Max Possible Allocation)</span><span>${tot.toFixed(1)}%</span>`;
+  totEl.className = "total-weight" + (tot>100?" over":"");
+
+  document.getElementById("weightageTable").innerHTML = sorted.map(c=>`
+    <tr>
+      <td><input class="weight-edit" value="${c.name}" oninput="editCritName('${c.id}',this.value)" /></td>
+      <td><input class="weight-input" type="number" step="0.5" value="${c.weight}" oninput="editCritWeight('${c.id}',this.value)" /></td>
+      <td><button class="danger small" onclick="deleteCrit('${c.id}')">Delete</button></td>
+    </tr>
+  `).join('');
+}
+
+function editCritName(id,val){
+  const list = getPending();
+  const c = list.find(c=>c.id===id);
+  if(c){ c.name = val; markPending(); }
+}
+function editCritWeight(id,val){
+  const list = getPending();
+  const c = list.find(c=>c.id===id);
+  if(c){
+    c.weight = Number(val)||0;
+    markPending();
+    // update total live without re-sorting (which would steal focus)
+    const tot = list.reduce((s,c)=>s+(Number(c.weight)||0),0);
+    const totEl = document.getElementById("totalWeightDisplay");
+    totEl.innerHTML = `<span>Total Weight (Max Possible Allocation)</span><span>${tot.toFixed(1)}%</span>`;
+    totEl.className = "total-weight" + (tot>100?" over":"");
+  }
+}
+function deleteCrit(id){
+  if(!confirm("Delete this criterion? (Click OK / Save Changes to confirm)")) return;
+  const list = getPending();
+  pendingCriteria = list.filter(c=>c.id!==id);
+  markPending();
+  renderWeightage();
+}
+function addCriteria(){
+  const name = document.getElementById("newCriteriaName").value.trim();
+  const w = Number(document.getElementById("newCriteriaWeight").value);
+  if(!name || !w) return alert("Enter name and weight");
+  const list = getPending();
+  list.push({id:"c"+Date.now(), name, weight:w});
+  document.getElementById("newCriteriaName").value="";
+  document.getElementById("newCriteriaWeight").value="";
+  markPending();
+  renderWeightage();
+}
+function commitWeightage(){
+  if(!hasPending){ alert("No changes to save"); return; }
+  state.criteria = JSON.parse(JSON.stringify(pendingCriteria));
+  saveState();
+  clearPending();
+  renderWeightage();
+  renderCriteria();
+  alert("Weightage changes saved!");
+}
+function discardWeightage(){
+  if(!hasPending){ alert("No changes to discard"); return; }
+  if(!confirm("Discard all unsaved changes?")) return;
+  clearPending();
+  renderWeightage();
+}
+
+// ============ BUCKETS ============
+function renderBuckets(){
+  document.getElementById("bucketList").innerHTML = state.buckets.map((b,i)=>`
+    <div class="bucket-row">
+      <input value="${b.label}" onchange="editBucket(${i},'label',this.value)" placeholder="Label" />
+      <input type="number" value="${b.min}" onchange="editBucket(${i},'min',this.value)" placeholder="Min %" />
+      <input type="number" value="${b.max}" onchange="editBucket(${i},'max',this.value)" placeholder="Max %" />
+      <button class="danger small" onclick="delBucket(${i})">X</button>
+    </div>
+  `).join('');
+}
+function editBucket(i, field, val){
+  state.buckets[i][field] = (field==='label') ? val : Number(val);
+  saveState();
+}
+function delBucket(i){ state.buckets.splice(i,1); saveState(); renderBuckets(); }
+function addBucket(){ state.buckets.push({label:"New Bucket",min:0,max:0,color:"buy"}); saveState(); renderBuckets(); }
+function resetBuckets(){ state.buckets = JSON.parse(JSON.stringify(DEFAULT_BUCKETS)); saveState(); renderBuckets(); }
+
+// ============ HISTORY ============
+function renderHistory(){
+  const search = (document.getElementById("histSearch").value||"").toLowerCase();
+  const userF = document.getElementById("histUserFilter").value;
+  const bucketF = document.getElementById("histBucketFilter").value;
+
+  const buckets = [...new Set(state.decisions.map(d=>d.bucket))];
+  const bf = document.getElementById("histBucketFilter");
+  bf.innerHTML = '<option value="all">All Buckets</option>' + buckets.map(b=>`<option value="${b}" ${b===bucketF?'selected':''}>${b}</option>`).join('');
+
+  const rows = state.decisions.filter(d=>{
+    if(search && !d.stockName.toLowerCase().includes(search)) return false;
+    if(userF!=='all' && d.userId!==userF) return false;
+    if(bucketF!=='all' && d.bucket!==bucketF) return false;
+    return true;
+  });
+  document.getElementById("historyTable").innerHTML = rows.length===0
+    ? `<tr><td colspan="7" class="empty">No decisions yet</td></tr>`
+    : rows.map(d=>{
+      const u = state.users.find(u=>u.id===d.userId);
+      return `<tr class="history-row">
+        <td>${d.date}</td>
+        <td><b>${d.stockName}</b></td>
+        <td>${d.sector||'-'}</td>
+        <td>${u?u.name:'?'}</td>
+        <td><b>${d.allocation}%</b></td>
+        <td><span class="bucket-pill bucket-${d.bucketColor}">${d.bucket}</span></td>
+        <td>
+          <button class="small ghost" onclick="viewDecision('${d.id}')">View</button>
+          <button class="small danger" onclick="deleteDecision('${d.id}')">X</button>
+        </td>
+      </tr>`;
+    }).join('');
+}
+
+function viewDecision(id){
+  const d = state.decisions.find(x=>x.id===id);
+  if(!d) return;
+  const u = state.users.find(u=>u.id===d.userId);
+  const rows = (d.criteriaSnapshot||state.criteria).map(c=>{
+    const v = d.scores[c.id];
+    const note = (d.notes||{})[c.id] || '';
+    const lbl = v==='yes'?'<span style="color:var(--yes)">YES</span>':v==='half'?'<span style="color:var(--half)">50%</span>':v==='no'?'<span style="color:var(--no)">NO</span>':'<span style="color:var(--muted)">—</span>';
+    const earned = v==='yes'?c.weight:v==='half'?c.weight/2:0;
+    return `<tr><td>${c.name}</td><td>${c.weight}%</td><td>${lbl}</td><td>${earned}%</td><td>${note}</td></tr>`;
+  }).join('');
+  document.getElementById("viewModalContent").innerHTML = `
+    <h2>${d.stockName} <span class="bucket-pill bucket-${d.bucketColor}">${d.bucket}</span></h2>
+    <p style="color:var(--muted);margin-top:6px">${d.sector||'-'} | ${d.date} | by ${u?u.name:'?'} | Allocation: <b style="color:var(--accent)">${d.allocation}%</b></p>
+    ${d.overallNote?`<p style="margin-top:10px;padding:10px;background:var(--panel2);border-radius:6px">${d.overallNote}</p>`:''}
+    <table style="margin-top:16px"><thead><tr><th>Criteria</th><th>Weight</th><th>Choice</th><th>Earned</th><th>Note</th></tr></thead><tbody>${rows}</tbody></table>
+  `;
+  document.getElementById("viewModal").classList.add("show");
+}
+
+function deleteDecision(id){
+  if(!confirm("Delete this decision?")) return;
+  state.decisions = state.decisions.filter(d=>d.id!==id);
+  saveState();
+  renderHistory();
+}
+
+// ============ COMPARE ============
+function renderCompareSelectors(){
+  const opts = '<option value="">Select decision...</option>' + state.decisions.map(d=>{
+    const u = state.users.find(u=>u.id===d.userId);
+    return `<option value="${d.id}">${d.stockName} (${d.date}, ${u?u.name:'?'}) - ${d.allocation}%</option>`;
+  }).join('');
+  document.getElementById("cmpA").innerHTML = opts;
+  document.getElementById("cmpB").innerHTML = opts;
+  document.getElementById("cmpC").innerHTML = '<option value="">(optional)</option>' + state.decisions.map(d=>{
+    const u = state.users.find(u=>u.id===d.userId);
+    return `<option value="${d.id}">${d.stockName} (${d.date}, ${u?u.name:'?'}) - ${d.allocation}%</option>`;
+  }).join('');
+}
+
+function renderCompare(){
+  const ids = [document.getElementById("cmpA").value, document.getElementById("cmpB").value, document.getElementById("cmpC").value].filter(Boolean);
+  if(ids.length < 2) return alert("Pick at least 2 decisions");
+  const decs = ids.map(id=>state.decisions.find(d=>d.id===id)).filter(Boolean);
+  const critNames = [...new Set(decs.flatMap(d=>(d.criteriaSnapshot||[]).map(c=>c.name)))];
+  let html = '<table><thead><tr><th>Criteria</th>'+decs.map(d=>`<th>${d.stockName}</th>`).join('')+'</tr></thead><tbody>';
+  html += '<tr><td><b>Allocation</b></td>'+decs.map(d=>`<td><b style="color:var(--accent)">${d.allocation}%</b></td>`).join('')+'</tr>';
+  html += '<tr><td><b>Bucket</b></td>'+decs.map(d=>`<td><span class="bucket-pill bucket-${d.bucketColor}">${d.bucket}</span></td>`).join('')+'</tr>';
+  html += '<tr><td><b>Date</b></td>'+decs.map(d=>`<td>${d.date}</td>`).join('')+'</tr>';
+  critNames.forEach(cn=>{
+    html += '<tr><td>'+cn+'</td>'+decs.map(d=>{
+      const c = (d.criteriaSnapshot||[]).find(x=>x.name===cn);
+      if(!c) return '<td>—</td>';
+      const v = d.scores[c.id];
+      const lbl = v==='yes'?'<span style="color:var(--yes)">YES</span>':v==='half'?'<span style="color:var(--half)">50%</span>':v==='no'?'<span style="color:var(--no)">NO</span>':'—';
+      return `<td>${lbl}</td>`;
+    }).join('')+'</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById("compareResult").innerHTML = html;
+}
+
+// ============ DATA / EXPORT ============
+function exportData(){
+  const blob = new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "stock_dashboard_backup_"+new Date().toISOString().slice(0,10)+".json";
+  a.click();
+}
+function exportCSV(){
+  const rows = [["Date","Stock","Sector","User","Allocation %","Bucket","Note"]];
+  state.decisions.forEach(d=>{
+    const u = state.users.find(u=>u.id===d.userId);
+    rows.push([d.date, d.stockName, d.sector||"", u?u.name:"", d.allocation, d.bucket, (d.overallNote||"").replace(/[\r\n,]/g," ")]);
+  });
+  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv],{type:"text/csv"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "stock_history_"+new Date().toISOString().slice(0,10)+".csv";
+  a.click();
+}
+function importData(ev){
+  const f = ev.target.files[0];
+  if(!f) return;
+  const r = new FileReader();
+  r.onload = e=>{
+    try{
+      const imported = JSON.parse(e.target.result);
+      if(!confirm("This will REPLACE all current data. Continue?")) return;
+      state = imported;
+      saveState();
+      renderUsers();
+      renderCriteria();
+      alert("Data imported successfully");
+    }catch(err){ alert("Invalid file"); }
+  };
+  r.readAsText(f);
+}
+function clearAllData(){
+  if(!confirm("This will delete ALL data including history. Are you sure?")) return;
+  if(!confirm("Really sure? This cannot be undone.")) return;
+  localStorage.removeItem("stockDashV1");
+  location.reload();
+}
+
+// ============ INIT ============
+renderUsers();
+document.getElementById("stockDate").value = new Date().toISOString().slice(0,10);
+renderCriteria();
+</script>
+</body>
+</html>
