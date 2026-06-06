@@ -16,7 +16,6 @@
   header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
   h1{font-size:22px;color:var(--accent)}
   .user-bar{display:flex;align-items:center;gap:10px;background:var(--panel);padding:8px 14px;border-radius:8px;border:1px solid var(--border)}
-  .user-bar select,.user-bar input{background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:6px 10px;border-radius:6px;font-size:13px}
   button{background:var(--accent2);color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;transition:opacity .2s}
   button:hover{opacity:.85}
   button.danger{background:var(--danger)}
@@ -65,37 +64,51 @@
   .modal.show{display:flex}
   .modal-content{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:800px;max-height:85vh;overflow-y:auto;width:90%}
   .empty{text-align:center;color:var(--muted);padding:40px}
-  @media (max-width:768px){
-    .criteria-row{grid-template-columns:1fr;gap:6px}
-    .stock-info{grid-template-columns:1fr}
-    .add-criteria-form{grid-template-columns:1fr}
-  }
+  @media (max-width:768px){.criteria-row{grid-template-columns:1fr;gap:6px}.stock-info{grid-template-columns:1fr}.add-criteria-form{grid-template-columns:1fr}}
   .actions-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
   .filter-bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
   .filter-bar input,.filter-bar select{background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:8px 12px;border-radius:6px;font-size:13px}
+  .login-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:200}
+  .login-card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:40px;max-width:440px;width:90%;text-align:center}
+  .login-card h2{color:var(--accent);margin-bottom:14px}
+  .login-card p{color:var(--muted);margin-bottom:24px;line-height:1.5}
+  .google-btn{display:inline-flex;align-items:center;gap:10px;background:#fff;color:#1f1f1f;padding:12px 24px;border-radius:8px;cursor:pointer;font-weight:500;border:none;font-size:14px}
+  .deny-msg{background:#fef2f2;color:#991b1b;padding:14px;border-radius:8px;margin-top:14px;font-size:13px}
+  .sync-indicator{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;margin-left:8px}
+  .sync-indicator .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 </style>
 </head>
 <body>
-<div class="container">
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card">
+    <h2>Stock Allocation Dashboard</h2>
+    <p>Niveshaay Investment Advisors<br/>Sign in with your authorized Google account.</p>
+    <button class="google-btn" onclick="signIn()">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
+      Sign in with Google
+    </button>
+    <div id="denyMsg" class="deny-msg" style="display:none"></div>
+  </div>
+</div>
+<div class="container" id="appContainer" style="display:none">
   <header>
-    <h1>Stock Allocation Dashboard</h1>
+    <h1>Stock Allocation Dashboard <span class="sync-indicator"><span class="dot"></span> Live Sync</span></h1>
     <div class="user-bar">
-      <span style="color:var(--muted)">User:</span>
-      <select id="userSelect" onchange="switchUser()"></select>
-      <button class="small ghost" onclick="showAddUser()">+ Add User</button>
+      <span style="color:var(--muted)">Signed in as:</span>
+      <span id="userEmailDisplay" style="font-weight:500"></span>
+      <button class="small ghost" onclick="signOut()">Sign Out</button>
     </div>
   </header>
-
   <div class="tabs">
     <div class="tab active" onclick="showTab('dashboard',event)">Dashboard</div>
     <div class="tab" onclick="showTab('weightage',event)">Weightage Menu</div>
     <div class="tab" onclick="showTab('buckets',event)">Bucket Settings</div>
     <div class="tab" onclick="showTab('history',event)">History</div>
     <div class="tab" onclick="showTab('compare',event)">Compare</div>
+    <div class="tab" onclick="showTab('admin',event)" id="adminTabLink" style="display:none">Admin</div>
     <div class="tab" onclick="showTab('data',event)">Data / Backup</div>
   </div>
-
-  <!-- DASHBOARD TAB -->
   <div id="tab-dashboard">
     <div class="panel">
       <div class="stock-info">
@@ -105,11 +118,7 @@
       </div>
       <input type="text" id="stockNotes" class="note-input" placeholder="Overall notes / thesis for this stock..." style="margin-bottom:8px;padding:10px;font-size:13px" />
     </div>
-
-    <div class="panel">
-      <div id="criteriaList"></div>
-    </div>
-
+    <div class="panel"><div id="criteriaList"></div></div>
     <div class="score-display">
       <div class="score-number" id="scoreNumber">0%</div>
       <div class="score-bucket" id="scoreBucket">No allocation</div>
@@ -120,12 +129,10 @@
       </div>
     </div>
   </div>
-
-  <!-- WEIGHTAGE TAB -->
   <div id="tab-weightage" style="display:none">
     <div class="panel">
       <h2 style="margin-bottom:12px">Criteria Weightage</h2>
-      <p class="help-text">Set weightage % for each criterion. Yes = full weight, 50% = half weight, No = 0. Total of all weights = your maximum possible allocation (typically 100%). Click <b>OK / Save Changes</b> at the bottom to apply your edits.</p>
+      <p class="help-text">Set weightage % for each criterion. Click <b>OK / Save Changes</b> to apply. Changes sync to everyone instantly.</p>
       <div class="total-weight" id="totalWeightDisplay"></div>
       <div class="filter-bar" style="margin-bottom:12px">
         <label style="color:var(--muted);align-self:center">Sort:</label>
@@ -138,12 +145,9 @@
         </select>
         <span id="pendingIndicator" style="color:var(--half);align-self:center;display:none">● Unsaved changes</span>
       </div>
-      <table>
-        <thead><tr><th>Criteria</th><th style="width:120px">Weight %</th><th style="width:100px">Actions</th></tr></thead>
-        <tbody id="weightageTable"></tbody>
-      </table>
+      <table><thead><tr><th>Criteria</th><th style="width:120px">Weight %</th><th style="width:100px">Actions</th></tr></thead><tbody id="weightageTable"></tbody></table>
       <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
-        <button onclick="commitWeightage()" id="commitBtn" style="background:var(--accent);color:#000;font-weight:600;padding:10px 22px">OK / Save Changes</button>
+        <button onclick="commitWeightage()" style="background:var(--accent);color:#000;font-weight:600;padding:10px 22px">OK / Save Changes</button>
         <button class="ghost" onclick="discardWeightage()">Discard Changes</button>
       </div>
       <div class="add-criteria-form">
@@ -153,41 +157,29 @@
       </div>
     </div>
   </div>
-
-  <!-- BUCKETS TAB -->
   <div id="tab-buckets" style="display:none">
     <div class="panel">
       <h2 style="margin-bottom:12px">Bucket / Label Settings</h2>
-      <p class="help-text">Set the score ranges that determine the label (Strong Buy, Buy, Watch, Skip etc.). Use this to quickly decide based on the final allocation %.</p>
+      <p class="help-text">Set score ranges that determine the label. Changes sync to all team members on save.</p>
       <div id="bucketList" style="margin-top:16px"></div>
       <div style="margin-top:12px">
         <button onclick="addBucket()">+ Add Bucket</button>
         <button class="ghost" onclick="resetBuckets()">Reset to Default</button>
+        <button style="background:var(--accent);color:#000;font-weight:600" onclick="saveBuckets()">Save Bucket Changes</button>
       </div>
     </div>
   </div>
-
-  <!-- HISTORY TAB -->
   <div id="tab-history" style="display:none">
     <div class="panel">
-      <h2 style="margin-bottom:12px">Decision History</h2>
+      <h2 style="margin-bottom:12px">Team Decision History</h2>
       <div class="filter-bar">
         <input type="text" id="histSearch" placeholder="Search stock name..." oninput="renderHistory()" />
-        <select id="histUserFilter" onchange="renderHistory()">
-          <option value="all">All Users</option>
-        </select>
-        <select id="histBucketFilter" onchange="renderHistory()">
-          <option value="all">All Buckets</option>
-        </select>
+        <select id="histUserFilter" onchange="renderHistory()"><option value="all">All Users</option></select>
+        <select id="histBucketFilter" onchange="renderHistory()"><option value="all">All Buckets</option></select>
       </div>
-      <table>
-        <thead><tr><th>Date</th><th>Stock</th><th>Sector</th><th>User</th><th>Allocation</th><th>Bucket</th><th></th></tr></thead>
-        <tbody id="historyTable"></tbody>
-      </table>
+      <table><thead><tr><th>Date</th><th>Stock</th><th>Sector</th><th>By</th><th>Allocation</th><th>Bucket</th><th></th></tr></thead><tbody id="historyTable"></tbody></table>
     </div>
   </div>
-
-  <!-- COMPARE TAB -->
   <div id="tab-compare" style="display:none">
     <div class="panel">
       <h2 style="margin-bottom:12px">Compare Decisions</h2>
@@ -201,37 +193,34 @@
       <div id="compareResult"></div>
     </div>
   </div>
-
-  <!-- DATA TAB -->
+  <div id="tab-admin" style="display:none">
+    <div class="panel">
+      <h2 style="margin-bottom:12px">Admin — Manage Access</h2>
+      <p class="help-text">Add or remove allowed email addresses. Only the admin can edit. After changing the list, also update Firebase Console rules.</p>
+      <div style="margin-top:16px">
+        <h3 style="margin-bottom:8px">Allowed Emails:</h3>
+        <div id="allowedEmailsList"></div>
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <input type="email" id="newAllowedEmail" placeholder="new.user@gmail.com" style="flex:1;background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:10px;border-radius:6px" />
+          <button onclick="addAllowedEmail()">+ Add Email</button>
+        </div>
+      </div>
+      <div style="margin-top:24px;padding:14px;background:var(--panel2);border-radius:8px">
+        <b>Important:</b> After adding/removing emails above, also update Firestore Rules at <a href="https://console.firebase.google.com/u/0/project/stock-allocation-dashboard/firestore/databases/-default-/security/rules" target="_blank" style="color:var(--accent)">Firebase Console → Rules</a>.
+      </div>
+    </div>
+  </div>
   <div id="tab-data" style="display:none">
     <div class="panel">
-      <h2 style="margin-bottom:12px">Data Backup & Share</h2>
-      <p class="help-text">Export all your data as a file. You can share this file with your friend, or back it up. Importing replaces current data.</p>
+      <h2 style="margin-bottom:12px">Data Backup & Export</h2>
+      <p class="help-text">Data is auto-synced to cloud. Use these for personal backup or Excel analysis.</p>
       <div class="actions-bar" style="margin-top:16px">
         <button onclick="exportData()">Export All Data (JSON)</button>
         <button onclick="exportCSV()">Export History as CSV</button>
-        <button class="ghost" onclick="document.getElementById('importFile').click()">Import Data</button>
-        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)" />
-        <button class="danger" onclick="clearAllData()">Clear All Data</button>
       </div>
-      <p class="help-text" style="margin-top:16px"><b>To share with friend:</b> Export your data as JSON, send them this HTML file + the JSON. They open the HTML, then Import your JSON. They can also add themselves as a new user and keep their own data separately.</p>
     </div>
   </div>
 </div>
-
-<!-- Add User Modal -->
-<div class="modal" id="addUserModal">
-  <div class="modal-content" style="max-width:400px">
-    <h2>Add User</h2>
-    <input type="text" id="newUserName" placeholder="User name" style="width:100%;padding:10px;margin-top:14px;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:6px" />
-    <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">
-      <button class="ghost" onclick="closeModal('addUserModal')">Cancel</button>
-      <button onclick="addUser()">Add</button>
-    </div>
-  </div>
-</div>
-
-<!-- View Decision Modal -->
 <div class="modal" id="viewModal">
   <div class="modal-content">
     <div id="viewModalContent"></div>
@@ -240,68 +229,120 @@
     </div>
   </div>
 </div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut as fbSignOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, collection, setDoc, getDoc, addDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-<script>
-// ============ DEFAULTS ============
+const firebaseConfig = {
+  apiKey: "AIzaSyDoDt2z3oxSebfHm7jXzPq0gQs_a55Z1Wo",
+  authDomain: "stock-allocation-dashboard.firebaseapp.com",
+  projectId: "stock-allocation-dashboard",
+  storageBucket: "stock-allocation-dashboard.firebasestorage.app",
+  messagingSenderId: "447226158143",
+  appId: "1:447226158143:web:5452cae6fd2b54941fec8a",
+  measurementId: "G-TP6G4DPNLR"
+};
+const ADMIN_EMAIL = "meetkatrodiya14@gmail.com";
+const ALLOWED_EMAILS = ["meetkatrodiya14@gmail.com", "mahantkrupa17@gmail.com"];
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
 const DEFAULT_CRITERIA = [
-  {name:"Supply Demand Mismatch", weight:5},
-  {name:"Gross Margin", weight:4},
-  {name:"Entry Barrier", weight:5},
-  {name:"Sectorial Tailwind", weight:6},
-  {name:"Export / Import Substitution", weight:4},
-  {name:"Few Listed Players", weight:3},
-  {name:"Operating Leverage / EBITDA Margin Improvement Chance", weight:5},
-  {name:"Product Mix Change", weight:3},
-  {name:"New Capex Live with Strong Current Demand in Product", weight:5},
-  {name:"Price Neglect", weight:3},
-  {name:"Preferential Allotment Majorly to Promoter (Growth + Visibility)", weight:4},
-  {name:"Promoter Open Market Purchase", weight:4},
-  {name:"New Sector / New Theme / New Invention / Market Fancy", weight:4},
-  {name:"Crossing the Chasm / Tornado Phase / Cost Curve", weight:4},
-  {name:"No one can Gauge TAM (Huge but undefined)", weight:3},
-  {name:"Chance of Euphoria / Bubble", weight:2},
-  {name:"Shareholding Pattern (FII/DII/Retail change + Low Float)", weight:4},
-  {name:"Chance of Re-Rating", weight:5},
-  {name:"Starting Valuation", weight:5},
-  {name:"Speed of New Capex (Brownfield, Machinery, Ramp-up time)", weight:4},
-  {name:"Order Backed Capacities / Technical Tie-up / Exclusive Agreement", weight:4},
-  {name:"Any Good Investor Buy / Holding", weight:3},
-  {name:"Solving any Bottleneck in Tailwind-led Sector", weight:4},
-  {name:"Leader in Sector", weight:4},
-  {name:"Promoter Quality / New CEO / New Generation Joining", weight:3}
+  {name:"Supply Demand Mismatch", weight:5},{name:"Gross Margin", weight:4},{name:"Entry Barrier", weight:5},{name:"Sectorial Tailwind", weight:6},{name:"Export / Import Substitution", weight:4},{name:"Few Listed Players", weight:3},{name:"Operating Leverage / EBITDA Margin Improvement Chance", weight:5},{name:"Product Mix Change", weight:3},{name:"New Capex Live with Strong Current Demand in Product", weight:5},{name:"Price Neglect", weight:3},{name:"Preferential Allotment Majorly to Promoter (Growth + Visibility)", weight:4},{name:"Promoter Open Market Purchase", weight:4},{name:"New Sector / New Theme / New Invention / Market Fancy", weight:4},{name:"Crossing the Chasm / Tornado Phase / Cost Curve", weight:4},{name:"No one can Gauge TAM (Huge but undefined)", weight:3},{name:"Chance of Euphoria / Bubble", weight:2},{name:"Shareholding Pattern (FII/DII/Retail change + Low Float)", weight:4},{name:"Chance of Re-Rating", weight:5},{name:"Starting Valuation", weight:5},{name:"Speed of New Capex (Brownfield, Machinery, Ramp-up time)", weight:4},{name:"Order Backed Capacities / Technical Tie-up / Exclusive Agreement", weight:4},{name:"Any Good Investor Buy / Holding", weight:3},{name:"Solving any Bottleneck in Tailwind-led Sector", weight:4},{name:"Leader in Sector", weight:4},{name:"Promoter Quality / New CEO / New Generation Joining", weight:3}
 ];
-
 const DEFAULT_BUCKETS = [
-  {label:"Strong Buy", min:60, max:100, color:"strong"},
-  {label:"Buy", min:40, max:59.99, color:"buy"},
-  {label:"Watch / Small Allocation", min:20, max:39.99, color:"watch"},
-  {label:"Skip / Avoid", min:0, max:19.99, color:"skip"}
+  {label:"Highest Conviction (25-40% alloc)", min:60, max:100, color:"strong"},
+  {label:"High Conviction (15-25% alloc)", min:40, max:59.99, color:"buy"},
+  {label:"Medium (10-15% alloc)", min:25, max:39.99, color:"buy"},
+  {label:"Small (5-10% alloc)", min:15, max:24.99, color:"watch"},
+  {label:"Watchlist (1-5% alloc)", min:5, max:14.99, color:"watch"},
+  {label:"Avoid", min:0, max:4.99, color:"skip"}
 ];
 
-// ============ STATE ============
-let state = loadState();
+let currentUser = null;
+let state = { criteria:[], buckets:[], decisions:[], allowedEmails:[...ALLOWED_EMAILS], currentForm:{} };
+let unsubscribes = [];
 
-function loadState(){
-  const raw = localStorage.getItem("stockDashV1");
-  if(raw){
-    try{ return JSON.parse(raw); }catch(e){}
+window.signIn = async () => {
+  try{ await signInWithPopup(auth, new GoogleAuthProvider()); }
+  catch(e){ alert("Sign-in failed: " + e.message); }
+};
+window.signOut = async () => { await fbSignOut(auth); unsubscribes.forEach(u=>u()); unsubscribes=[]; location.reload(); };
+
+onAuthStateChanged(auth, async (user) => {
+  if(!user){
+    document.getElementById("loginOverlay").style.display = "flex";
+    document.getElementById("appContainer").style.display = "none";
+    return;
   }
-  return {
-    users:[{id:"u1",name:"Meet"}],
-    currentUser:"u1",
-    criteria: DEFAULT_CRITERIA.map((c,i)=>({id:"c"+i, ...c})),
-    buckets: DEFAULT_BUCKETS,
-    decisions:[],
-    currentForm:{}
-  };
+  if(!ALLOWED_EMAILS.includes(user.email)){
+    document.getElementById("denyMsg").style.display = "block";
+    document.getElementById("denyMsg").textContent = `Access denied. Email '${user.email}' is not authorized. Contact Meet to add you.`;
+    await fbSignOut(auth);
+    return;
+  }
+  currentUser = user;
+  document.getElementById("loginOverlay").style.display = "none";
+  document.getElementById("appContainer").style.display = "block";
+  document.getElementById("userEmailDisplay").textContent = user.email;
+  if(user.email === ADMIN_EMAIL){ document.getElementById("adminTabLink").style.display = "block"; }
+  await initData();
+  setupListeners();
+});
+
+async function initData(){
+  try{
+    const cSnap = await getDoc(doc(db, "config", "criteria"));
+    if(!cSnap.exists()) await setDoc(doc(db, "config", "criteria"), { items: DEFAULT_CRITERIA.map((c,i)=>({id:"c"+i, ...c})) });
+    const bSnap = await getDoc(doc(db, "config", "buckets"));
+    if(!bSnap.exists()) await setDoc(doc(db, "config", "buckets"), { items: DEFAULT_BUCKETS });
+    const aSnap = await getDoc(doc(db, "config", "access"));
+    if(!aSnap.exists()) await setDoc(doc(db, "config", "access"), { emails: ALLOWED_EMAILS, admin: ADMIN_EMAIL });
+    const ls = localStorage.getItem("stockDashV1");
+    if(ls){
+      const old = JSON.parse(ls);
+      if(old.decisions && old.decisions.length){
+        if(confirm(`Found ${old.decisions.length} local decisions. Migrate to cloud now?`)){
+          for(const d of old.decisions){
+            await addDoc(collection(db, "decisions"), {
+              userEmail: currentUser.email, userName: currentUser.displayName || currentUser.email,
+              stockName: d.stockName, sector: d.sector||"", date: d.date,
+              overallNote: d.overallNote||"", scores: d.scores||{}, notes: d.notes||{},
+              allocation: d.allocation, maxPossible: d.maxPossible,
+              bucket: d.bucket, bucketColor: d.bucketColor,
+              criteriaSnapshot: d.criteriaSnapshot||[], createdAt: serverTimestamp()
+            });
+          }
+          alert(`Migrated ${old.decisions.length} decisions to cloud.`);
+        }
+        localStorage.removeItem("stockDashV1");
+      }
+    }
+  } catch(e){ console.error(e); alert("Setup error: " + e.message); }
 }
 
-function saveState(){
-  localStorage.setItem("stockDashV1", JSON.stringify(state));
+function setupListeners(){
+  unsubscribes.push(onSnapshot(doc(db,"config","criteria"), (snap) => {
+    if(snap.exists()){ state.criteria = snap.data().items||[]; renderCriteria(); if(document.getElementById("tab-weightage").style.display!=="none") renderWeightage(); }
+  }));
+  unsubscribes.push(onSnapshot(doc(db,"config","buckets"), (snap) => {
+    if(snap.exists()){ state.buckets = snap.data().items||[]; if(document.getElementById("tab-buckets").style.display!=="none") renderBuckets(); updateScore(); }
+  }));
+  unsubscribes.push(onSnapshot(doc(db,"config","access"), (snap) => {
+    if(snap.exists()){ state.allowedEmails = snap.data().emails||ALLOWED_EMAILS; if(document.getElementById("tab-admin").style.display!=="none") renderAllowedEmails(); }
+  }));
+  unsubscribes.push(onSnapshot(query(collection(db,"decisions"), orderBy("createdAt","desc")), (snap) => {
+    state.decisions = [];
+    snap.forEach(d => state.decisions.push({id:d.id, ...d.data()}));
+    if(document.getElementById("tab-history").style.display!=="none") renderHistory();
+    renderCompareSelectors();
+  }));
 }
 
-// ============ TABS ============
-function showTab(name, ev){
+window.showTab = function(name, ev){
   document.querySelectorAll('[id^="tab-"]').forEach(el=>el.style.display='none');
   document.getElementById("tab-"+name).style.display='block';
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -310,77 +351,43 @@ function showTab(name, ev){
   if(name==='buckets') renderBuckets();
   if(name==='history') renderHistory();
   if(name==='compare') renderCompareSelectors();
+  if(name==='admin') renderAllowedEmails();
   if(name==='dashboard') renderCriteria();
-}
+};
 
-// ============ USERS ============
-function renderUsers(){
-  const sel = document.getElementById("userSelect");
-  sel.innerHTML = state.users.map(u=>`<option value="${u.id}" ${u.id===state.currentUser?'selected':''}>${u.name}</option>`).join('');
-  const fsel = document.getElementById("histUserFilter");
-  if(fsel){
-    fsel.innerHTML = '<option value="all">All Users</option>' + state.users.map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
-  }
-}
-function switchUser(){
-  state.currentUser = document.getElementById("userSelect").value;
-  saveState();
-  resetForm();
-}
-function showAddUser(){ document.getElementById("addUserModal").classList.add("show"); }
-function closeModal(id){ document.getElementById(id).classList.remove("show"); }
-function addUser(){
-  const name = document.getElementById("newUserName").value.trim();
-  if(!name) return alert("Enter a name");
-  const id = "u" + Date.now();
-  state.users.push({id,name});
-  state.currentUser = id;
-  document.getElementById("newUserName").value="";
-  closeModal("addUserModal");
-  saveState();
-  renderUsers();
-  resetForm();
-}
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-// ============ CRITERIA RENDERING (Dashboard) ============
 function renderCriteria(){
   const list = document.getElementById("criteriaList");
+  if(!list) return;
   list.innerHTML = state.criteria.map(c=>{
     const v = (state.currentForm.scores||{})[c.id] || '';
     const note = (state.currentForm.notes||{})[c.id] || '';
-    return `
-    <div class="criteria-row">
-      <div class="criteria-name">${c.name}</div>
+    return `<div class="criteria-row">
+      <div class="criteria-name">${escapeHtml(c.name)}</div>
       <div class="criteria-weight">${c.weight}%</div>
       <div class="options">
         <button class="opt-btn yes ${v==='yes'?'active':''}" onclick="setScore('${c.id}','yes')">Yes</button>
         <button class="opt-btn half ${v==='half'?'active':''}" onclick="setScore('${c.id}','half')">50%</button>
         <button class="opt-btn no ${v==='no'?'active':''}" onclick="setScore('${c.id}','no')">No</button>
       </div>
-      <input type="text" class="note-input" placeholder="Note (optional)" value="${note}" oninput="setNote('${c.id}',this.value)" />
+      <input type="text" class="note-input" placeholder="Note (optional)" value="${escapeHtml(note)}" oninput="setNote('${c.id}',this.value)" />
     </div>`;
   }).join('');
   updateScore();
 }
-
-function setScore(cid, val){
+window.setScore = function(cid, val){
   if(!state.currentForm.scores) state.currentForm.scores = {};
-  if(state.currentForm.scores[cid]===val){
-    delete state.currentForm.scores[cid];
-  } else {
-    state.currentForm.scores[cid] = val;
-  }
-  saveState();
+  if(state.currentForm.scores[cid]===val) delete state.currentForm.scores[cid];
+  else state.currentForm.scores[cid] = val;
   renderCriteria();
-}
-function setNote(cid, val){
+};
+window.setNote = function(cid, val){
   if(!state.currentForm.notes) state.currentForm.notes = {};
   state.currentForm.notes[cid] = val;
-  saveState();
-}
-
+};
 function calcScore(scores){
-  let earned = 0, max = 0;
+  let earned=0, max=0;
   state.criteria.forEach(c=>{
     max += Number(c.weight)||0;
     const v = scores[c.id];
@@ -389,79 +396,54 @@ function calcScore(scores){
   });
   return {earned, max};
 }
-
 function getBucket(score){
-  for(const b of state.buckets){
-    if(score >= b.min && score <= b.max) return b;
-  }
+  for(const b of state.buckets){ if(score >= b.min && score <= b.max) return b; }
   return {label:"-", color:"skip"};
 }
-
 function updateScore(){
+  if(!document.getElementById("scoreNumber")) return;
   const {earned, max} = calcScore(state.currentForm.scores||{});
   document.getElementById("scoreNumber").textContent = earned.toFixed(1)+"%";
   const b = getBucket(earned);
-  document.getElementById("scoreBucket").innerHTML = `<span class="bucket-pill bucket-${b.color}">${b.label}</span>`;
+  document.getElementById("scoreBucket").innerHTML = `<span class="bucket-pill bucket-${b.color}">${escapeHtml(b.label)}</span>`;
   document.getElementById("scoreBreakdown").textContent = `Maximum possible: ${max}% | Earned: ${earned.toFixed(1)}%`;
 }
 
-// ============ SAVE DECISION ============
-function saveDecision(){
+window.saveDecision = async function(){
   const name = document.getElementById("stockName").value.trim();
   if(!name) return alert("Enter stock name");
   const {earned,max} = calcScore(state.currentForm.scores||{});
-  const dec = {
-    id: "d"+Date.now(),
-    userId: state.currentUser,
-    stockName: name,
-    sector: document.getElementById("stockSector").value.trim(),
-    date: document.getElementById("stockDate").value || new Date().toISOString().slice(0,10),
-    overallNote: document.getElementById("stockNotes").value.trim(),
-    scores: {...(state.currentForm.scores||{})},
-    notes: {...(state.currentForm.notes||{})},
-    allocation: Number(earned.toFixed(2)),
-    maxPossible: max,
-    bucket: getBucket(earned).label,
-    bucketColor: getBucket(earned).color,
-    criteriaSnapshot: state.criteria.map(c=>({id:c.id,name:c.name,weight:c.weight}))
-  };
-  state.decisions.unshift(dec);
-  saveState();
-  alert(`Saved: ${name} → ${earned.toFixed(1)}% allocation (${dec.bucket})`);
-  resetForm();
-}
-
-function resetForm(){
+  try{
+    await addDoc(collection(db,"decisions"),{
+      userEmail: currentUser.email, userName: currentUser.displayName || currentUser.email,
+      stockName: name, sector: document.getElementById("stockSector").value.trim(),
+      date: document.getElementById("stockDate").value || new Date().toISOString().slice(0,10),
+      overallNote: document.getElementById("stockNotes").value.trim(),
+      scores: {...(state.currentForm.scores||{})}, notes: {...(state.currentForm.notes||{})},
+      allocation: Number(earned.toFixed(2)), maxPossible: max,
+      bucket: getBucket(earned).label, bucketColor: getBucket(earned).color,
+      criteriaSnapshot: state.criteria.map(c=>({id:c.id,name:c.name,weight:c.weight})),
+      createdAt: serverTimestamp()
+    });
+    alert(`Saved: ${name} → ${earned.toFixed(1)}% (${getBucket(earned).label})`);
+    resetForm();
+  } catch(e){ alert("Save failed: " + e.message); }
+};
+window.resetForm = function(){
   state.currentForm = {};
   document.getElementById("stockName").value="";
   document.getElementById("stockSector").value="";
   document.getElementById("stockNotes").value="";
   document.getElementById("stockDate").value = new Date().toISOString().slice(0,10);
-  saveState();
   renderCriteria();
-}
+};
 
-// ============ WEIGHTAGE (pending draft system) ============
-let pendingCriteria = null;
-let hasPending = false;
+let pendingCriteria = null, hasPending = false;
+function getPending(){ if(!pendingCriteria) pendingCriteria = JSON.parse(JSON.stringify(state.criteria)); return pendingCriteria; }
+function markPending(){ hasPending = true; const i=document.getElementById("pendingIndicator"); if(i) i.style.display="inline"; }
+function clearPending(){ pendingCriteria=null; hasPending=false; const i=document.getElementById("pendingIndicator"); if(i) i.style.display="none"; }
 
-function getPending(){
-  if(!pendingCriteria) pendingCriteria = JSON.parse(JSON.stringify(state.criteria));
-  return pendingCriteria;
-}
-function markPending(){
-  hasPending = true;
-  const ind = document.getElementById("pendingIndicator");
-  if(ind) ind.style.display = "inline";
-}
-function clearPending(){
-  pendingCriteria = null;
-  hasPending = false;
-  const ind = document.getElementById("pendingIndicator");
-  if(ind) ind.style.display = "none";
-}
-
-function renderWeightage(){
+window.renderWeightage = function(){
   const list = getPending();
   const sortMode = (document.getElementById("weightSort")||{}).value || "default";
   let sorted = [...list];
@@ -469,179 +451,149 @@ function renderWeightage(){
   else if(sortMode==="weight_asc") sorted.sort((a,b)=>(Number(a.weight)||0)-(Number(b.weight)||0));
   else if(sortMode==="name_asc") sorted.sort((a,b)=>a.name.localeCompare(b.name));
   else if(sortMode==="name_desc") sorted.sort((a,b)=>b.name.localeCompare(a.name));
-
   const tot = list.reduce((s,c)=>s+(Number(c.weight)||0),0);
   const totEl = document.getElementById("totalWeightDisplay");
   totEl.innerHTML = `<span>Total Weight (Max Possible Allocation)</span><span>${tot.toFixed(1)}%</span>`;
   totEl.className = "total-weight" + (tot>100?" over":"");
-
   document.getElementById("weightageTable").innerHTML = sorted.map(c=>`
     <tr>
-      <td><input class="weight-edit" value="${c.name}" oninput="editCritName('${c.id}',this.value)" /></td>
+      <td><input class="weight-edit" value="${escapeHtml(c.name)}" oninput="editCritName('${c.id}',this.value)" /></td>
       <td><input class="weight-input" type="number" step="0.5" value="${c.weight}" oninput="editCritWeight('${c.id}',this.value)" /></td>
       <td><button class="danger small" onclick="deleteCrit('${c.id}')">Delete</button></td>
-    </tr>
-  `).join('');
-}
-
-function editCritName(id,val){
-  const list = getPending();
-  const c = list.find(c=>c.id===id);
-  if(c){ c.name = val; markPending(); }
-}
-function editCritWeight(id,val){
-  const list = getPending();
-  const c = list.find(c=>c.id===id);
+    </tr>`).join('');
+};
+window.editCritName = (id,val) => { const c=getPending().find(c=>c.id===id); if(c){c.name=val; markPending();} };
+window.editCritWeight = (id,val) => {
+  const c=getPending().find(c=>c.id===id);
   if(c){
-    c.weight = Number(val)||0;
-    markPending();
-    // update total live without re-sorting (which would steal focus)
-    const tot = list.reduce((s,c)=>s+(Number(c.weight)||0),0);
+    c.weight=Number(val)||0; markPending();
+    const tot = pendingCriteria.reduce((s,c)=>s+(Number(c.weight)||0),0);
     const totEl = document.getElementById("totalWeightDisplay");
     totEl.innerHTML = `<span>Total Weight (Max Possible Allocation)</span><span>${tot.toFixed(1)}%</span>`;
     totEl.className = "total-weight" + (tot>100?" over":"");
   }
-}
-function deleteCrit(id){
-  if(!confirm("Delete this criterion? (Click OK / Save Changes to confirm)")) return;
-  const list = getPending();
-  pendingCriteria = list.filter(c=>c.id!==id);
-  markPending();
-  renderWeightage();
-}
-function addCriteria(){
+};
+window.deleteCrit = (id) => {
+  if(!confirm("Delete this criterion?")) return;
+  pendingCriteria = getPending().filter(c=>c.id!==id);
+  markPending(); renderWeightage();
+};
+window.addCriteria = () => {
   const name = document.getElementById("newCriteriaName").value.trim();
   const w = Number(document.getElementById("newCriteriaWeight").value);
   if(!name || !w) return alert("Enter name and weight");
-  const list = getPending();
-  list.push({id:"c"+Date.now(), name, weight:w});
+  getPending().push({id:"c"+Date.now(), name, weight:w});
   document.getElementById("newCriteriaName").value="";
   document.getElementById("newCriteriaWeight").value="";
-  markPending();
-  renderWeightage();
-}
-function commitWeightage(){
+  markPending(); renderWeightage();
+};
+window.commitWeightage = async () => {
   if(!hasPending){ alert("No changes to save"); return; }
-  state.criteria = JSON.parse(JSON.stringify(pendingCriteria));
-  saveState();
-  clearPending();
-  renderWeightage();
-  renderCriteria();
-  alert("Weightage changes saved!");
-}
-function discardWeightage(){
-  if(!hasPending){ alert("No changes to discard"); return; }
+  try{
+    await setDoc(doc(db,"config","criteria"), { items: pendingCriteria });
+    clearPending();
+    alert("Weightage saved! Synced to team.");
+  } catch(e){ alert("Save failed: " + e.message); }
+};
+window.discardWeightage = () => {
+  if(!hasPending){ alert("Nothing to discard"); return; }
   if(!confirm("Discard all unsaved changes?")) return;
-  clearPending();
-  renderWeightage();
-}
+  clearPending(); renderWeightage();
+};
 
-// ============ BUCKETS ============
-function renderBuckets(){
-  document.getElementById("bucketList").innerHTML = state.buckets.map((b,i)=>`
+let pendingBuckets = null;
+function getPendingBuckets(){ if(!pendingBuckets) pendingBuckets = JSON.parse(JSON.stringify(state.buckets)); return pendingBuckets; }
+window.renderBuckets = () => {
+  document.getElementById("bucketList").innerHTML = getPendingBuckets().map((b,i)=>`
     <div class="bucket-row">
-      <input value="${b.label}" onchange="editBucket(${i},'label',this.value)" placeholder="Label" />
+      <input value="${escapeHtml(b.label)}" onchange="editBucket(${i},'label',this.value)" placeholder="Label" />
       <input type="number" value="${b.min}" onchange="editBucket(${i},'min',this.value)" placeholder="Min %" />
       <input type="number" value="${b.max}" onchange="editBucket(${i},'max',this.value)" placeholder="Max %" />
       <button class="danger small" onclick="delBucket(${i})">X</button>
-    </div>
-  `).join('');
-}
-function editBucket(i, field, val){
-  state.buckets[i][field] = (field==='label') ? val : Number(val);
-  saveState();
-}
-function delBucket(i){ state.buckets.splice(i,1); saveState(); renderBuckets(); }
-function addBucket(){ state.buckets.push({label:"New Bucket",min:0,max:0,color:"buy"}); saveState(); renderBuckets(); }
-function resetBuckets(){ state.buckets = JSON.parse(JSON.stringify(DEFAULT_BUCKETS)); saveState(); renderBuckets(); }
+    </div>`).join('');
+};
+window.editBucket = (i, field, val) => { getPendingBuckets()[i][field] = (field==='label') ? val : Number(val); };
+window.delBucket = (i) => { getPendingBuckets().splice(i,1); renderBuckets(); };
+window.addBucket = () => { getPendingBuckets().push({label:"New Bucket",min:0,max:0,color:"buy"}); renderBuckets(); };
+window.resetBuckets = () => { pendingBuckets = JSON.parse(JSON.stringify(DEFAULT_BUCKETS)); renderBuckets(); };
+window.saveBuckets = async () => {
+  try{
+    await setDoc(doc(db,"config","buckets"), { items: pendingBuckets });
+    pendingBuckets = null;
+    alert("Bucket settings saved!");
+  } catch(e){ alert("Save failed: " + e.message); }
+};
 
-// ============ HISTORY ============
-function renderHistory(){
+window.renderHistory = () => {
   const search = (document.getElementById("histSearch").value||"").toLowerCase();
   const userF = document.getElementById("histUserFilter").value;
   const bucketF = document.getElementById("histBucketFilter").value;
-
+  const users = [...new Set(state.decisions.map(d=>d.userEmail))];
+  document.getElementById("histUserFilter").innerHTML = '<option value="all">All Users</option>' + users.map(u=>`<option value="${escapeHtml(u)}" ${u===userF?'selected':''}>${escapeHtml(u)}</option>`).join('');
   const buckets = [...new Set(state.decisions.map(d=>d.bucket))];
-  const bf = document.getElementById("histBucketFilter");
-  bf.innerHTML = '<option value="all">All Buckets</option>' + buckets.map(b=>`<option value="${b}" ${b===bucketF?'selected':''}>${b}</option>`).join('');
-
+  document.getElementById("histBucketFilter").innerHTML = '<option value="all">All Buckets</option>' + buckets.map(b=>`<option value="${escapeHtml(b)}" ${b===bucketF?'selected':''}>${escapeHtml(b)}</option>`).join('');
   const rows = state.decisions.filter(d=>{
     if(search && !d.stockName.toLowerCase().includes(search)) return false;
-    if(userF!=='all' && d.userId!==userF) return false;
+    if(userF!=='all' && d.userEmail!==userF) return false;
     if(bucketF!=='all' && d.bucket!==bucketF) return false;
     return true;
   });
   document.getElementById("historyTable").innerHTML = rows.length===0
-    ? `<tr><td colspan="7" class="empty">No decisions yet</td></tr>`
-    : rows.map(d=>{
-      const u = state.users.find(u=>u.id===d.userId);
-      return `<tr class="history-row">
-        <td>${d.date}</td>
-        <td><b>${d.stockName}</b></td>
-        <td>${d.sector||'-'}</td>
-        <td>${u?u.name:'?'}</td>
+    ? `<tr><td colspan="7" class="empty">No decisions yet — save one from the Dashboard tab!</td></tr>`
+    : rows.map(d=>`<tr class="history-row">
+        <td>${escapeHtml(d.date)}</td>
+        <td><b>${escapeHtml(d.stockName)}</b></td>
+        <td>${escapeHtml(d.sector||'-')}</td>
+        <td><span style="font-size:11px">${escapeHtml(d.userEmail.split('@')[0])}</span></td>
         <td><b>${d.allocation}%</b></td>
-        <td><span class="bucket-pill bucket-${d.bucketColor}">${d.bucket}</span></td>
+        <td><span class="bucket-pill bucket-${d.bucketColor}">${escapeHtml(d.bucket)}</span></td>
         <td>
           <button class="small ghost" onclick="viewDecision('${d.id}')">View</button>
-          <button class="small danger" onclick="deleteDecision('${d.id}')">X</button>
+          ${d.userEmail === currentUser.email ? `<button class="small danger" onclick="deleteDecision('${d.id}')">X</button>` : ''}
         </td>
-      </tr>`;
-    }).join('');
-}
-
-function viewDecision(id){
+      </tr>`).join('');
+};
+window.viewDecision = (id) => {
   const d = state.decisions.find(x=>x.id===id);
   if(!d) return;
-  const u = state.users.find(u=>u.id===d.userId);
   const rows = (d.criteriaSnapshot||state.criteria).map(c=>{
     const v = d.scores[c.id];
     const note = (d.notes||{})[c.id] || '';
     const lbl = v==='yes'?'<span style="color:var(--yes)">YES</span>':v==='half'?'<span style="color:var(--half)">50%</span>':v==='no'?'<span style="color:var(--no)">NO</span>':'<span style="color:var(--muted)">—</span>';
     const earned = v==='yes'?c.weight:v==='half'?c.weight/2:0;
-    return `<tr><td>${c.name}</td><td>${c.weight}%</td><td>${lbl}</td><td>${earned}%</td><td>${note}</td></tr>`;
+    return `<tr><td>${escapeHtml(c.name)}</td><td>${c.weight}%</td><td>${lbl}</td><td>${earned}%</td><td>${escapeHtml(note)}</td></tr>`;
   }).join('');
   document.getElementById("viewModalContent").innerHTML = `
-    <h2>${d.stockName} <span class="bucket-pill bucket-${d.bucketColor}">${d.bucket}</span></h2>
-    <p style="color:var(--muted);margin-top:6px">${d.sector||'-'} | ${d.date} | by ${u?u.name:'?'} | Allocation: <b style="color:var(--accent)">${d.allocation}%</b></p>
-    ${d.overallNote?`<p style="margin-top:10px;padding:10px;background:var(--panel2);border-radius:6px">${d.overallNote}</p>`:''}
-    <table style="margin-top:16px"><thead><tr><th>Criteria</th><th>Weight</th><th>Choice</th><th>Earned</th><th>Note</th></tr></thead><tbody>${rows}</tbody></table>
-  `;
+    <h2>${escapeHtml(d.stockName)} <span class="bucket-pill bucket-${d.bucketColor}">${escapeHtml(d.bucket)}</span></h2>
+    <p style="color:var(--muted);margin-top:6px">${escapeHtml(d.sector||'-')} | ${escapeHtml(d.date)} | by ${escapeHtml(d.userEmail)} | Allocation: <b style="color:var(--accent)">${d.allocation}%</b></p>
+    ${d.overallNote?`<p style="margin-top:10px;padding:10px;background:var(--panel2);border-radius:6px">${escapeHtml(d.overallNote)}</p>`:''}
+    <table style="margin-top:16px"><thead><tr><th>Criteria</th><th>Weight</th><th>Choice</th><th>Earned</th><th>Note</th></tr></thead><tbody>${rows}</tbody></table>`;
   document.getElementById("viewModal").classList.add("show");
-}
-
-function deleteDecision(id){
+};
+window.closeModal = (id) => document.getElementById(id).classList.remove("show");
+window.deleteDecision = async (id) => {
   if(!confirm("Delete this decision?")) return;
-  state.decisions = state.decisions.filter(d=>d.id!==id);
-  saveState();
-  renderHistory();
-}
+  try{ await deleteDoc(doc(db,"decisions", id)); }
+  catch(e){ alert("Delete failed: " + e.message); }
+};
 
-// ============ COMPARE ============
-function renderCompareSelectors(){
-  const opts = '<option value="">Select decision...</option>' + state.decisions.map(d=>{
-    const u = state.users.find(u=>u.id===d.userId);
-    return `<option value="${d.id}">${d.stockName} (${d.date}, ${u?u.name:'?'}) - ${d.allocation}%</option>`;
-  }).join('');
-  document.getElementById("cmpA").innerHTML = opts;
-  document.getElementById("cmpB").innerHTML = opts;
-  document.getElementById("cmpC").innerHTML = '<option value="">(optional)</option>' + state.decisions.map(d=>{
-    const u = state.users.find(u=>u.id===d.userId);
-    return `<option value="${d.id}">${d.stockName} (${d.date}, ${u?u.name:'?'}) - ${d.allocation}%</option>`;
-  }).join('');
-}
-
-function renderCompare(){
+window.renderCompareSelectors = () => {
+  const opts = '<option value="">Select decision...</option>' + state.decisions.map(d=>`<option value="${d.id}">${escapeHtml(d.stockName)} (${escapeHtml(d.date)}, ${escapeHtml(d.userEmail.split('@')[0])}) - ${d.allocation}%</option>`).join('');
+  if(document.getElementById("cmpA")) document.getElementById("cmpA").innerHTML = opts;
+  if(document.getElementById("cmpB")) document.getElementById("cmpB").innerHTML = opts;
+  if(document.getElementById("cmpC")) document.getElementById("cmpC").innerHTML = '<option value="">(optional)</option>' + state.decisions.map(d=>`<option value="${d.id}">${escapeHtml(d.stockName)} - ${d.allocation}%</option>`).join('');
+};
+window.renderCompare = () => {
   const ids = [document.getElementById("cmpA").value, document.getElementById("cmpB").value, document.getElementById("cmpC").value].filter(Boolean);
   if(ids.length < 2) return alert("Pick at least 2 decisions");
   const decs = ids.map(id=>state.decisions.find(d=>d.id===id)).filter(Boolean);
   const critNames = [...new Set(decs.flatMap(d=>(d.criteriaSnapshot||[]).map(c=>c.name)))];
-  let html = '<table><thead><tr><th>Criteria</th>'+decs.map(d=>`<th>${d.stockName}</th>`).join('')+'</tr></thead><tbody>';
+  let html = '<table><thead><tr><th>Criteria</th>'+decs.map(d=>`<th>${escapeHtml(d.stockName)}</th>`).join('')+'</tr></thead><tbody>';
   html += '<tr><td><b>Allocation</b></td>'+decs.map(d=>`<td><b style="color:var(--accent)">${d.allocation}%</b></td>`).join('')+'</tr>';
-  html += '<tr><td><b>Bucket</b></td>'+decs.map(d=>`<td><span class="bucket-pill bucket-${d.bucketColor}">${d.bucket}</span></td>`).join('')+'</tr>';
-  html += '<tr><td><b>Date</b></td>'+decs.map(d=>`<td>${d.date}</td>`).join('')+'</tr>';
+  html += '<tr><td><b>Bucket</b></td>'+decs.map(d=>`<td><span class="bucket-pill bucket-${d.bucketColor}">${escapeHtml(d.bucket)}</span></td>`).join('')+'</tr>';
+  html += '<tr><td><b>By</b></td>'+decs.map(d=>`<td>${escapeHtml(d.userEmail)}</td>`).join('')+'</tr>';
   critNames.forEach(cn=>{
-    html += '<tr><td>'+cn+'</td>'+decs.map(d=>{
+    html += '<tr><td>'+escapeHtml(cn)+'</td>'+decs.map(d=>{
       const c = (d.criteriaSnapshot||[]).find(x=>x.name===cn);
       if(!c) return '<td>—</td>';
       const v = d.scores[c.id];
@@ -651,21 +603,42 @@ function renderCompare(){
   });
   html += '</tbody></table>';
   document.getElementById("compareResult").innerHTML = html;
-}
+};
 
-// ============ DATA / EXPORT ============
-function exportData(){
-  const blob = new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+window.renderAllowedEmails = () => {
+  document.getElementById("allowedEmailsList").innerHTML = state.allowedEmails.map(e=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:var(--panel2);border-radius:6px;margin-bottom:6px">
+      <span>${escapeHtml(e)} ${e===ADMIN_EMAIL?'<span style="color:var(--accent);font-size:11px">(admin)</span>':''}</span>
+      ${e===ADMIN_EMAIL ? '' : `<button class="small danger" onclick="removeAllowedEmail('${escapeHtml(e)}')">Remove</button>`}
+    </div>`).join('');
+};
+window.addAllowedEmail = async () => {
+  const em = document.getElementById("newAllowedEmail").value.trim().toLowerCase();
+  if(!em || !em.includes("@")) return alert("Enter valid email");
+  if(state.allowedEmails.includes(em)) return alert("Already in list");
+  try{
+    await setDoc(doc(db,"config","access"), { emails: [...state.allowedEmails, em], admin: ADMIN_EMAIL });
+    document.getElementById("newAllowedEmail").value="";
+    alert("Email added! IMPORTANT: also update Firebase Console Rules.");
+  } catch(e){ alert("Failed: " + e.message); }
+};
+window.removeAllowedEmail = async (em) => {
+  if(!confirm("Remove " + em + "?")) return;
+  try{ await setDoc(doc(db,"config","access"), { emails: state.allowedEmails.filter(e=>e!==em), admin: ADMIN_EMAIL }); }
+  catch(e){ alert("Failed: " + e.message); }
+};
+
+window.exportData = () => {
+  const blob = new Blob([JSON.stringify({criteria:state.criteria, buckets:state.buckets, decisions:state.decisions, allowedEmails:state.allowedEmails},null,2)],{type:"application/json"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "stock_dashboard_backup_"+new Date().toISOString().slice(0,10)+".json";
   a.click();
-}
-function exportCSV(){
+};
+window.exportCSV = () => {
   const rows = [["Date","Stock","Sector","User","Allocation %","Bucket","Note"]];
   state.decisions.forEach(d=>{
-    const u = state.users.find(u=>u.id===d.userId);
-    rows.push([d.date, d.stockName, d.sector||"", u?u.name:"", d.allocation, d.bucket, (d.overallNote||"").replace(/[\r\n,]/g," ")]);
+    rows.push([d.date, d.stockName, d.sector||"", d.userEmail, d.allocation, d.bucket, (d.overallNote||"").replace(/[\r\n,]/g," ")]);
   });
   const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
   const blob = new Blob([csv],{type:"text/csv"});
@@ -673,35 +646,9 @@ function exportCSV(){
   a.href = URL.createObjectURL(blob);
   a.download = "stock_history_"+new Date().toISOString().slice(0,10)+".csv";
   a.click();
-}
-function importData(ev){
-  const f = ev.target.files[0];
-  if(!f) return;
-  const r = new FileReader();
-  r.onload = e=>{
-    try{
-      const imported = JSON.parse(e.target.result);
-      if(!confirm("This will REPLACE all current data. Continue?")) return;
-      state = imported;
-      saveState();
-      renderUsers();
-      renderCriteria();
-      alert("Data imported successfully");
-    }catch(err){ alert("Invalid file"); }
-  };
-  r.readAsText(f);
-}
-function clearAllData(){
-  if(!confirm("This will delete ALL data including history. Are you sure?")) return;
-  if(!confirm("Really sure? This cannot be undone.")) return;
-  localStorage.removeItem("stockDashV1");
-  location.reload();
-}
+};
 
-// ============ INIT ============
-renderUsers();
 document.getElementById("stockDate").value = new Date().toISOString().slice(0,10);
-renderCriteria();
 </script>
 </body>
 </html>
