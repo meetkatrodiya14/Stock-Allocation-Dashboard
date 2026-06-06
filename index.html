@@ -219,6 +219,15 @@
         <button onclick="exportCSV()">Export History as CSV</button>
       </div>
     </div>
+    <div class="panel">
+      <h2 style="margin-bottom:12px">Import Historical Data</h2>
+      <p class="help-text">Upload a JSON backup file (from the old local version, or another export). You can choose what to import. <b>Decisions are added without replacing existing ones. Criteria/Buckets REPLACE current settings.</b></p>
+      <div style="margin-top:16px">
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="handleImportFile(event)" />
+        <button onclick="document.getElementById('importFile').click()">Choose JSON file...</button>
+        <div id="importPreview" style="margin-top:16px"></div>
+      </div>
+    </div>
   </div>
 </div>
 <div class="modal" id="viewModal">
@@ -635,6 +644,94 @@ window.exportData = () => {
   a.download = "stock_dashboard_backup_"+new Date().toISOString().slice(0,10)+".json";
   a.click();
 };
+let importedData = null;
+window.handleImportFile = (ev) => {
+  const f = ev.target.files[0];
+  if(!f) return;
+  const r = new FileReader();
+  r.onload = e => {
+    try{
+      importedData = JSON.parse(e.target.result);
+      const nDec = (importedData.decisions||[]).length;
+      const nCrit = (importedData.criteria||[]).length;
+      const nBuck = (importedData.buckets||[]).length;
+      document.getElementById("importPreview").innerHTML = `
+        <div style="padding:16px;background:var(--panel2);border-radius:8px">
+          <p style="margin-bottom:12px"><b>File loaded:</b> ${f.name}</p>
+          <p>Found: <b>${nDec}</b> decisions, <b>${nCrit}</b> criteria, <b>${nBuck}</b> buckets</p>
+          <p style="color:var(--muted);font-size:12px;margin-top:8px">Choose what to import:</p>
+          <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+            <button onclick="importDecisions()" ${nDec===0?'disabled':''}>Import ${nDec} Decisions Only</button>
+            <button onclick="importCriteria()" ${nCrit===0?'disabled':''}>Replace Criteria (${nCrit})</button>
+            <button onclick="importBuckets()" ${nBuck===0?'disabled':''}>Replace Buckets (${nBuck})</button>
+            <button style="background:var(--accent);color:#000;font-weight:600" onclick="importAll()">Import Everything</button>
+          </div>
+        </div>`;
+    } catch(err){ alert("Invalid JSON: " + err.message); }
+  };
+  r.readAsText(f);
+};
+window.importDecisions = async () => {
+  if(!importedData || !importedData.decisions) return alert("No decisions to import");
+  if(!confirm(`Import ${importedData.decisions.length} decisions to cloud? They'll be added (not replaced).`)) return;
+  let ok = 0, fail = 0;
+  for(const d of importedData.decisions){
+    try{
+      await addDoc(collection(db,"decisions"),{
+        userEmail: currentUser.email, userName: currentUser.displayName || currentUser.email,
+        stockName: d.stockName, sector: d.sector||"",
+        date: d.date || new Date().toISOString().slice(0,10),
+        overallNote: d.overallNote||"", scores: d.scores||{}, notes: d.notes||{},
+        allocation: d.allocation, maxPossible: d.maxPossible,
+        bucket: d.bucket||"-", bucketColor: d.bucketColor||"skip",
+        criteriaSnapshot: d.criteriaSnapshot||[], createdAt: serverTimestamp(),
+        importedFromBackup: true
+      });
+      ok++;
+    } catch(e){ console.error(e); fail++; }
+  }
+  alert(`Imported ${ok} decisions. ${fail>0?'Failed: '+fail:''}`);
+};
+window.importCriteria = async () => {
+  if(!importedData || !importedData.criteria) return alert("No criteria to import");
+  if(!confirm(`REPLACE current criteria with ${importedData.criteria.length} from file? All team members see this change.`)) return;
+  try{
+    await setDoc(doc(db,"config","criteria"), { items: importedData.criteria });
+    alert("Criteria replaced and synced.");
+  } catch(e){ alert("Failed: " + e.message); }
+};
+window.importBuckets = async () => {
+  if(!importedData || !importedData.buckets) return alert("No buckets to import");
+  if(!confirm(`REPLACE current buckets with ${importedData.buckets.length} from file?`)) return;
+  try{
+    await setDoc(doc(db,"config","buckets"), { items: importedData.buckets });
+    alert("Buckets replaced and synced.");
+  } catch(e){ alert("Failed: " + e.message); }
+};
+window.importAll = async () => {
+  if(!importedData) return alert("Load a file first");
+  if(!confirm("This will REPLACE criteria & buckets AND ADD all decisions. Continue?")) return;
+  if(importedData.criteria && importedData.criteria.length) await setDoc(doc(db,"config","criteria"), { items: importedData.criteria });
+  if(importedData.buckets && importedData.buckets.length) await setDoc(doc(db,"config","buckets"), { items: importedData.buckets });
+  let ok = 0;
+  for(const d of (importedData.decisions||[])){
+    try{
+      await addDoc(collection(db,"decisions"),{
+        userEmail: currentUser.email, userName: currentUser.displayName || currentUser.email,
+        stockName: d.stockName, sector: d.sector||"",
+        date: d.date || new Date().toISOString().slice(0,10),
+        overallNote: d.overallNote||"", scores: d.scores||{}, notes: d.notes||{},
+        allocation: d.allocation, maxPossible: d.maxPossible,
+        bucket: d.bucket||"-", bucketColor: d.bucketColor||"skip",
+        criteriaSnapshot: d.criteriaSnapshot||[], createdAt: serverTimestamp(),
+        importedFromBackup: true
+      });
+      ok++;
+    } catch(e){ console.error(e); }
+  }
+  alert(`Imported everything. Decisions added: ${ok}`);
+};
+
 window.exportCSV = () => {
   const rows = [["Date","Stock","Sector","User","Allocation %","Bucket","Note"]];
   state.decisions.forEach(d=>{
